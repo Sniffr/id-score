@@ -295,16 +295,21 @@ const IdCapture = {
     },
     
     // Update guide appearance based on validation
-    updateIdCardGuideStatus: function(guideElement, isValid) {
+    updateIdCardGuideStatus: function(guideElement, result) {
         if (!guideElement) return;
+        
+        const isValid = result.isValid || false;
         
         // Update guide border color
         guideElement.style.border = isValid ? '2px solid #28a745' : '2px dashed #dc3545';
+        guideElement.style.boxShadow = isValid 
+            ? '0 0 0 2000px rgba(0, 0, 0, 0.3), 0 0 10px rgba(40, 167, 69, 0.8)' 
+            : '0 0 0 2000px rgba(0, 0, 0, 0.3)';
         
         // Update guide text if it exists
-        const guideText = guideElement.querySelector('div');
+        const guideText = guideElement.querySelector('div:not(.validation-status)');
         if (guideText) {
-            guideText.textContent = isValid ? 'ID card positioned correctly' : 'Position ID card within the frame';
+            guideText.textContent = result.message || (isValid ? 'ID card positioned correctly' : 'Position ID card within the frame');
             guideText.style.color = isValid ? '#28a745' : '#fff';
         }
         
@@ -312,7 +317,7 @@ const IdCapture = {
         const statusIndicator = guideElement.querySelector('.validation-status');
         if (statusIndicator) {
             statusIndicator.style.display = 'block';
-            statusIndicator.textContent = isValid ? 'Valid ID Position' : 'Adjust ID Position';
+            statusIndicator.textContent = result.message || (isValid ? 'Valid ID Position' : 'Adjust ID Position');
             statusIndicator.style.backgroundColor = isValid ? 'rgba(40, 167, 69, 0.7)' : 'rgba(220, 53, 69, 0.7)';
         }
     },
@@ -321,8 +326,81 @@ const IdCapture = {
     validateIdCardRealTime: function(videoElement, canvasElement, guideElement) {
         if (!videoElement || !canvasElement || !guideElement) return false;
         
-        // Check if ID card is within guide
-        return this.isIdCardInGuide(videoElement, guideElement);
+        // Initialize IdCardDetection if needed
+        if (typeof IdCardDetection !== 'undefined' && !IdCardDetection.cvLoaded) {
+            IdCardDetection.initialize().catch(error => {
+                console.error('Error initializing OpenCV:', error);
+            });
+        }
+        
+        // Use IdCardDetection if available, otherwise fallback to existing method
+        if (typeof IdCardDetection !== 'undefined' && IdCardDetection.cvLoaded) {
+            const result = IdCardDetection.detectIdCard(videoElement, canvasElement, guideElement);
+            
+            // Update guide appearance based on detection result
+            this.updateIdCardGuideStatus(guideElement, result);
+            
+            // Visualize the detected ID card position
+            this.visualizeIdCardPosition(videoElement, result);
+            
+            return result.isValid || false;
+        } else {
+            // Fallback to existing method
+            const isValid = this.isIdCardInGuide(videoElement, guideElement);
+            this.updateIdCardGuideStatus(guideElement, { isValid: isValid });
+            return isValid;
+        }
+    },
+    
+    // Visualize the detected ID card position
+    visualizeIdCardPosition: function(videoElement, result) {
+        // Remove any existing outline
+        const existingOutline = document.querySelector('.id-position-outline');
+        if (existingOutline) {
+            existingOutline.remove();
+        }
+        
+        // If no card detected or video element not available, return
+        if (!result.detected || !result.rect || !videoElement) {
+            return;
+        }
+        
+        // Get video dimensions and container
+        const videoRect = videoElement.getBoundingClientRect();
+        const videoWidth = videoElement.videoWidth;
+        const videoHeight = videoElement.videoHeight;
+        const container = videoElement.parentElement;
+        
+        // Calculate position in display coordinates
+        const scaleX = videoRect.width / videoWidth;
+        const scaleY = videoRect.height / videoHeight;
+        
+        const displayX = result.rect.x * scaleX;
+        const displayY = result.rect.y * scaleY;
+        const displayWidth = result.rect.width * scaleX;
+        const displayHeight = result.rect.height * scaleY;
+        
+        // Create outline element
+        const outline = document.createElement('div');
+        outline.className = 'id-position-outline';
+        outline.style.left = displayX + 'px';
+        outline.style.top = displayY + 'px';
+        outline.style.width = displayWidth + 'px';
+        outline.style.height = displayHeight + 'px';
+        outline.style.borderColor = result.isValid ? '#28a745' : '#dc3545';
+        outline.style.display = 'block';
+        
+        // Add message if needed
+        if (result.message && !result.isValid) {
+            const message = document.createElement('div');
+            message.className = 'id-position-message';
+            message.textContent = result.message;
+            message.style.backgroundColor = result.isValid ? 'rgba(40, 167, 69, 0.7)' : 'rgba(220, 53, 69, 0.7)';
+            outline.appendChild(message);
+        }
+        
+        // Add to container
+        container.appendChild(outline);
     }
 };
 

@@ -8,7 +8,7 @@ const cameraConstraints = {
     video: {
         width: { ideal: 1280 },
         height: { ideal: 720 },
-        facingMode: "user"
+        facingMode: "environment" // Default to rear camera
     }
 };
 
@@ -94,11 +94,15 @@ const CameraUtils = {
             const guideText = document.createElement('div');
             guideText.textContent = 'Position ID card within the frame';
             guideText.style.position = 'absolute';
-            guideText.style.bottom = '-30px';
+            guideText.style.bottom = '-40px';
             guideText.style.left = '0';
             guideText.style.width = '100%';
             guideText.style.textAlign = 'center';
             guideText.style.color = '#fff';
+            guideText.style.fontWeight = 'bold';
+            guideText.style.fontSize = '16px';
+            guideText.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+            guideText.style.padding = '8px 0';
             guideText.style.textShadow = '0 0 5px rgba(0, 0, 0, 0.7)';
             guideText.style.transition = 'all 0.3s ease-in-out';
             guideElement.appendChild(guideText);

@@ -25,11 +25,14 @@ function initializeCamera() {
     const captureContainer = document.getElementById('capture-container');
     const previewContainer = document.getElementById('preview-container');
     
-    let currentFacingMode = "user"; // Default to front camera
+    let currentFacingMode = "environment"; // Default to rear camera
     let cameraStream = null;
     let idCardGuide = null;
     let validationInterval = null;
     let isIdValid = false;
+    let validPositionCounter = 0;
+    let autoCaptureEnabled = true;
+    let isCapturing = false;
     
     // Add camera switch button if device has multiple cameras
     CameraUtils.hasMultipleCameras().then(hasMultiple => {
@@ -56,6 +59,25 @@ function initializeCamera() {
         }
     });
     
+    // Set up auto-capture toggle button
+    const toggleAutoCaptureBtn = document.getElementById('toggle-autocapture');
+    if (toggleAutoCaptureBtn) {
+        toggleAutoCaptureBtn.addEventListener('click', function() {
+            autoCaptureEnabled = !autoCaptureEnabled;
+            
+            if (autoCaptureEnabled) {
+                toggleAutoCaptureBtn.classList.add('active');
+                toggleAutoCaptureBtn.innerHTML = '<i class="bi bi-magic"></i> Auto-Capture: ON';
+            } else {
+                toggleAutoCaptureBtn.classList.remove('active');
+                toggleAutoCaptureBtn.innerHTML = '<i class="bi bi-magic"></i> Auto-Capture: OFF';
+                
+                // Reset counter when disabled
+                validPositionCounter = 0;
+            }
+        });
+    }
+    
     // Initialize camera with enhanced settings
     CameraUtils.initCamera(video)
         .then(stream => {
@@ -74,10 +96,40 @@ function initializeCamera() {
                             captureBtn.classList.remove('btn-secondary');
                             captureBtn.classList.add('btn-primary');
                             captureBtn.disabled = false;
+                            
+                            // If ID is valid and still, increment counter for auto-capture
+                            if (autoCaptureEnabled && !isCapturing) {
+                                validPositionCounter++;
+                                
+                                // After 2 seconds of stable position, auto-capture
+                                if (validPositionCounter >= 4) { // 500ms interval * 4 = 2 seconds
+                                    isCapturing = true;
+                                    
+                                    // Add "Capturing..." text to the button
+                                    captureBtn.innerHTML = '<i class="bi bi-camera"></i> Capturing...';
+                                    
+                                    // Trigger capture after a short delay
+                                    setTimeout(() => {
+                                        if (isIdValid) {
+                                            // Simulate button click to capture
+                                            captureBtn.click();
+                                        } else {
+                                            // Reset if position is lost during delay
+                                            isCapturing = false;
+                                            captureBtn.innerHTML = '<i class="bi bi-camera"></i> Capture Front of ID';
+                                        }
+                                    }, 500);
+                                }
+                            }
                         } else {
                             captureBtn.classList.remove('btn-primary');
                             captureBtn.classList.add('btn-secondary');
                             captureBtn.disabled = true;
+                            
+                            // Reset counter if position is lost
+                            validPositionCounter = 0;
+                            isCapturing = false;
+                            captureBtn.innerHTML = '<i class="bi bi-camera"></i> Capture Front of ID';
                         }
                     }
                 }
