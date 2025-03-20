@@ -141,9 +141,188 @@ const IdCapture = {
     
     // Check if ID card is within guide
     isIdCardInGuide: function(videoElement, guideElement) {
-        // In a real application, this would use computer vision to check if the ID card is within the guide
-        // For this demo, we'll always return true
-        return true;
+        if (!videoElement || !guideElement) return false;
+        
+        // Get video dimensions
+        const videoWidth = videoElement.videoWidth;
+        const videoHeight = videoElement.videoHeight;
+        
+        // Create canvas for image processing
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.width = videoWidth;
+        canvas.height = videoHeight;
+        
+        // Draw current video frame to canvas
+        context.drawImage(videoElement, 0, 0, videoWidth, videoHeight);
+        
+        // Get image data for processing
+        const imageData = context.getImageData(0, 0, videoWidth, videoHeight);
+        
+        // Check if there's a rectangle shape in the guide area
+        const isRectangleDetected = this.detectRectangle(imageData, guideElement, videoElement);
+        
+        // Check if image has good contrast
+        const hasGoodContrast = this.checkImageContrast(imageData);
+        
+        // Overall validation result
+        const isValid = isRectangleDetected && hasGoodContrast;
+        
+        // Update guide appearance based on validation
+        this.updateIdCardGuideStatus(guideElement, isValid);
+        
+        return isValid;
+    },
+    
+    // Detect rectangle shape (ID card) within guide area
+    detectRectangle: function(imageData, guideElement, videoElement) {
+        // In a real application, this would use computer vision to detect edges
+        // For this demo, we'll use a simplified approach to detect contrast changes
+        
+        // Get guide position relative to video
+        const videoRect = videoElement.getBoundingClientRect();
+        const guideRect = guideElement.getBoundingClientRect();
+        
+        // Calculate guide position in image coordinates
+        const scaleX = videoElement.videoWidth / videoRect.width;
+        const scaleY = videoElement.videoHeight / videoRect.height;
+        
+        const guideLeft = (guideRect.left - videoRect.left) * scaleX;
+        const guideTop = (guideRect.top - videoRect.top) * scaleY;
+        const guideWidth = guideRect.width * scaleX;
+        const guideHeight = guideRect.height * scaleY;
+        
+        // Sample points around guide perimeter to detect edges
+        const edgeDetected = this.sampleEdgePoints(imageData, 
+            guideLeft, guideTop, guideWidth, guideHeight, 
+            videoElement.videoWidth);
+        
+        return edgeDetected;
+    },
+    
+    // Sample points around perimeter to detect edges
+    sampleEdgePoints: function(imageData, left, top, width, height, stride) {
+        // Number of sample points per edge
+        const sampleCount = 10;
+        let edgePointsDetected = 0;
+        
+        // Sample top edge
+        for (let i = 0; i < sampleCount; i++) {
+            const x = left + (width * i / sampleCount);
+            const y = top;
+            if (this.isEdgePoint(imageData, Math.floor(x), Math.floor(y), stride)) {
+                edgePointsDetected++;
+            }
+        }
+        
+        // Sample right edge
+        for (let i = 0; i < sampleCount; i++) {
+            const x = left + width;
+            const y = top + (height * i / sampleCount);
+            if (this.isEdgePoint(imageData, Math.floor(x), Math.floor(y), stride)) {
+                edgePointsDetected++;
+            }
+        }
+        
+        // Sample bottom edge
+        for (let i = 0; i < sampleCount; i++) {
+            const x = left + (width * i / sampleCount);
+            const y = top + height;
+            if (this.isEdgePoint(imageData, Math.floor(x), Math.floor(y), stride)) {
+                edgePointsDetected++;
+            }
+        }
+        
+        // Sample left edge
+        for (let i = 0; i < sampleCount; i++) {
+            const x = left;
+            const y = top + (height * i / sampleCount);
+            if (this.isEdgePoint(imageData, Math.floor(x), Math.floor(y), stride)) {
+                edgePointsDetected++;
+            }
+        }
+        
+        // If we detect enough edge points, consider it a rectangle
+        return edgePointsDetected > (sampleCount * 4 * 0.3); // At least 30% of points should be edges
+    },
+    
+    // Check if a point is an edge point by looking at local contrast
+    isEdgePoint: function(imageData, x, y, stride) {
+        // Get pixel data
+        const idx = (y * stride + x) * 4;
+        if (idx < 0 || idx >= imageData.data.length - 4) return false;
+        
+        // Get current pixel RGB
+        const r1 = imageData.data[idx];
+        const g1 = imageData.data[idx + 1];
+        const b1 = imageData.data[idx + 2];
+        
+        // Get adjacent pixel RGB (right neighbor)
+        const r2 = imageData.data[idx + 4];
+        const g2 = imageData.data[idx + 5];
+        const b2 = imageData.data[idx + 6];
+        
+        // Calculate contrast
+        const contrast = Math.abs(r1 - r2) + Math.abs(g1 - g2) + Math.abs(b1 - b2);
+        
+        // Consider it an edge if contrast is high enough
+        return contrast > 100;
+    },
+    
+    // Check image contrast
+    checkImageContrast: function(imageData) {
+        // Calculate average brightness
+        let totalBrightness = 0;
+        let pixelCount = 0;
+        
+        // Sample every 10th pixel for performance
+        for (let i = 0; i < imageData.data.length; i += 40) {
+            const r = imageData.data[i];
+            const g = imageData.data[i + 1];
+            const b = imageData.data[i + 2];
+            
+            // Calculate brightness (simple average)
+            const brightness = (r + g + b) / 3;
+            totalBrightness += brightness;
+            pixelCount++;
+        }
+        
+        // Average brightness
+        const avgBrightness = totalBrightness / pixelCount;
+        
+        // Check if brightness is in a good range (not too dark, not too bright)
+        return avgBrightness > 50 && avgBrightness < 200;
+    },
+    
+    // Update guide appearance based on validation
+    updateIdCardGuideStatus: function(guideElement, isValid) {
+        if (!guideElement) return;
+        
+        // Update guide border color
+        guideElement.style.border = isValid ? '2px solid #28a745' : '2px dashed #dc3545';
+        
+        // Update guide text if it exists
+        const guideText = guideElement.querySelector('div');
+        if (guideText) {
+            guideText.textContent = isValid ? 'ID card positioned correctly' : 'Position ID card within the frame';
+            guideText.style.color = isValid ? '#28a745' : '#fff';
+        }
+        
+        // Update validation status indicator if it exists
+        const statusIndicator = guideElement.querySelector('.validation-status');
+        if (statusIndicator) {
+            statusIndicator.style.display = 'block';
+            statusIndicator.textContent = isValid ? 'Valid ID Position' : 'Adjust ID Position';
+            statusIndicator.style.backgroundColor = isValid ? 'rgba(40, 167, 69, 0.7)' : 'rgba(220, 53, 69, 0.7)';
+        }
+    },
+    
+    // Real-time ID card validation
+    validateIdCardRealTime: function(videoElement, canvasElement, guideElement) {
+        if (!videoElement || !canvasElement || !guideElement) return false;
+        
+        // Check if ID card is within guide
+        return this.isIdCardInGuide(videoElement, guideElement);
     }
 };
 

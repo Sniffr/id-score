@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Camera initialization for ID capture
+// Camera initialization for ID capture with real-time validation
 function initializeCamera() {
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
@@ -28,6 +28,8 @@ function initializeCamera() {
     let currentFacingMode = "user"; // Default to front camera
     let cameraStream = null;
     let idCardGuide = null;
+    let validationInterval = null;
+    let isIdValid = false;
     
     // Add camera switch button if device has multiple cameras
     CameraUtils.hasMultipleCameras().then(hasMultiple => {
@@ -60,11 +62,38 @@ function initializeCamera() {
             cameraStream = stream;
             // Apply ID card guides
             idCardGuide = CameraUtils.applyIdCardGuides(video);
+            
+            // Start real-time validation
+            validationInterval = setInterval(() => {
+                if (video.readyState === 4) {
+                    isIdValid = IdCapture.validateIdCardRealTime(video, canvas, idCardGuide);
+                    
+                    // Update capture button based on validation
+                    if (captureBtn) {
+                        if (isIdValid) {
+                            captureBtn.classList.remove('btn-secondary');
+                            captureBtn.classList.add('btn-primary');
+                            captureBtn.disabled = false;
+                        } else {
+                            captureBtn.classList.remove('btn-primary');
+                            captureBtn.classList.add('btn-secondary');
+                            captureBtn.disabled = true;
+                        }
+                    }
+                }
+            }, 500);
         })
         .catch(error => {
             console.error("Camera error:", error);
             alert("Error accessing the camera: " + error.message);
         });
+    
+    // Clean up interval when leaving the page
+    window.addEventListener('beforeunload', () => {
+        if (validationInterval) {
+            clearInterval(validationInterval);
+        }
+    });
     
     // Capture image when button is clicked
     if (captureBtn) {
@@ -82,6 +111,12 @@ function initializeCamera() {
             
             // Stop camera stream when in preview mode to save resources
             CameraUtils.stopStream(cameraStream);
+            
+            // Clear validation interval
+            if (validationInterval) {
+                clearInterval(validationInterval);
+                validationInterval = null;
+            }
         });
     }
     
@@ -96,6 +131,28 @@ function initializeCamera() {
             CameraUtils.initCamera(video)
                 .then(stream => {
                     cameraStream = stream;
+                    
+                    // Restart validation interval
+                    if (!validationInterval) {
+                        validationInterval = setInterval(() => {
+                            if (video.readyState === 4) {
+                                isIdValid = IdCapture.validateIdCardRealTime(video, canvas, idCardGuide);
+                                
+                                // Update capture button based on validation
+                                if (captureBtn) {
+                                    if (isIdValid) {
+                                        captureBtn.classList.remove('btn-secondary');
+                                        captureBtn.classList.add('btn-primary');
+                                        captureBtn.disabled = false;
+                                    } else {
+                                        captureBtn.classList.remove('btn-primary');
+                                        captureBtn.classList.add('btn-secondary');
+                                        captureBtn.disabled = true;
+                                    }
+                                }
+                            }
+                        }, 500);
+                    }
                 })
                 .catch(error => {
                     console.error("Camera error:", error);
