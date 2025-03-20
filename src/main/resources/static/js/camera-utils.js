@@ -8,7 +8,7 @@ const cameraConstraints = {
     video: {
         width: { ideal: 1280 },
         height: { ideal: 720 },
-        facingMode: "user"
+        facingMode: "environment" // Default to rear camera
     }
 };
 
@@ -72,7 +72,7 @@ const CameraUtils = {
         return canvasElement.toDataURL('image/png');
     },
     
-    // Apply visual guides for ID card placement
+    // Apply visual guides for ID card placement with validation support
     applyIdCardGuides: function(videoElement, guideElement) {
         // Create guide overlay if it doesn't exist
         if (!guideElement) {
@@ -88,18 +88,41 @@ const CameraUtils = {
             guideElement.style.borderRadius = '10px';
             guideElement.style.boxShadow = '0 0 0 2000px rgba(0, 0, 0, 0.3)';
             guideElement.style.zIndex = '10';
+            guideElement.style.transition = 'all 0.3s ease-in-out';
             
             // Add guide text
             const guideText = document.createElement('div');
             guideText.textContent = 'Position ID card within the frame';
             guideText.style.position = 'absolute';
-            guideText.style.bottom = '-30px';
+            guideText.style.bottom = '-40px';
             guideText.style.left = '0';
             guideText.style.width = '100%';
             guideText.style.textAlign = 'center';
             guideText.style.color = '#fff';
+            guideText.style.fontWeight = 'bold';
+            guideText.style.fontSize = '16px';
+            guideText.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+            guideText.style.padding = '8px 0';
             guideText.style.textShadow = '0 0 5px rgba(0, 0, 0, 0.7)';
+            guideText.style.transition = 'all 0.3s ease-in-out';
             guideElement.appendChild(guideText);
+            
+            // Add validation status indicator
+            const statusIndicator = document.createElement('div');
+            statusIndicator.className = 'validation-status';
+            statusIndicator.style.position = 'absolute';
+            statusIndicator.style.top = '-40px';
+            statusIndicator.style.left = '50%';
+            statusIndicator.style.transform = 'translateX(-50%)';
+            statusIndicator.style.padding = '5px 10px';
+            statusIndicator.style.borderRadius = '20px';
+            statusIndicator.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+            statusIndicator.style.color = '#fff';
+            statusIndicator.style.display = 'none';
+            statusIndicator.style.transition = 'all 0.3s ease-in-out';
+            statusIndicator.style.fontWeight = 'bold';
+            statusIndicator.style.fontSize = '14px';
+            guideElement.appendChild(statusIndicator);
             
             // Add to video container
             videoElement.parentElement.style.position = 'relative';
