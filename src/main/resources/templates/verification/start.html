@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/header :: head('Start Verification')">
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h3 class="text-center">Start Verification</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="step-indicator">
+                            <div class="step active">
+                                <div class="step-circle">1</div>
+                                <div class="step-line"></div>
+                                <div class="step-title">Start</div>
+                            </div>
+                            <div class="step">
+                                <div class="step-circle">2</div>
+                                <div class="step-line"></div>
+                                <div class="step-title">ID Front</div>
+                            </div>
+                            <div class="step">
+                                <div class="step-circle">3</div>
+                                <div class="step-line"></div>
+                                <div class="step-title">ID Back</div>
+                            </div>
+                            <div class="step">
+                                <div class="step-circle">4</div>
+                                <div class="step-line"></div>
+                                <div class="step-title">Liveness</div>
+                            </div>
+                            <div class="step">
+                                <div class="step-circle">5</div>
+                                <div class="step-title">Complete</div>
+                            </div>
+                        </div>
+                        
+                        <form th:action="@{/verification/id-front}" method="post" class="mt-4">
+                            <div class="mb-3">
+                                <label for="idNumber" class="form-label">National ID Number</label>
+                                <input type="text" class="form-control" id="idNumber" name="idNumber" required 
+                                       pattern="[0-9]{8,9}" title="Please enter a valid Kenyan ID number (8-9 digits)">
+                                <div class="form-text">Enter your Kenyan National ID number (8-9 digits)</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="fullName" class="form-label">Full Name</label>
+                                <input type="text" class="form-control" id="fullName" name="fullName" required>
+                                <div class="form-text">Enter your full name as it appears on your ID</div>
+                            </div>
+                            
+                            <div class="alert alert-info">
+                                <h5>Verification Process:</h5>
+                                <ol>
+                                    <li>Enter your ID details</li>
+                                    <li>Capture the front of your National ID</li>
+                                    <li>Capture the back of your National ID</li>
+                                    <li>Complete a liveness check</li>
+                                    <li>Receive verification results</li>
+                                </ol>
+                            </div>
+                            
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary">Continue to ID Capture</button>
+                                <a th:href="@{/}" class="btn btn-outline-secondary">Cancel</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div th:replace="fragments/header :: scripts"></div>
+</body>
+</html>

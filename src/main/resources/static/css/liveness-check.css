@@ -1,0 +1,119 @@
+/* Liveness Check Styles */
+.liveness-instructions {
+    margin: 20px 0;
+    padding: 15px;
+    background-color: #e7f1ff;
+    border-radius: 8px;
+    border-left: 5px solid #0d6efd;
+}
+
+.instruction-status-container {
+    margin: 1rem 0;
+}
+
+.instruction-status-container span {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background-color: #f8f9fa;
+    transition: all 0.3s ease;
+}
+
+.instruction-status-container span.completed {
+    background-color: #198754;
+    color: white;
+}
+
+.liveness-success-message {
+    margin-top: 1rem;
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.liveness-progress-bar {
+    height: 10px;
+    transition: width 0.5s ease-in-out;
+    background-color: #198754;
+}
+
+/* Face guide for liveness check */
+.face-guide {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60%;
+    height: 70%;
+    border: 2px dashed #fff;
+    border-radius: 50%;
+    box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.3);
+    z-index: 10;
+    pointer-events: none;
+}
+
+.face-guide::after {
+    content: 'Position your face within the oval';
+    position: absolute;
+    bottom: -30px;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    color: #fff;
+    text-shadow: 0 0 5px rgba(0, 0, 0, 0.7);
+    font-size: 14px;
+}
+
+/* Liveness animation effects */
+.blink-animation {
+    animation: blink 2s ease-in-out infinite;
+}
+
+@keyframes blink {
+    0% { opacity: 1; }
+    50% { opacity: 0.3; }
+    100% { opacity: 1; }
+}
+
+.head-turn-guide {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 60px;
+    border: 2px dashed rgba(255, 255, 255, 0.7);
+    border-radius: 20px;
+    z-index: 11;
+    pointer-events: none;
+}
+
+.head-turn-left {
+    left: 10%;
+}
+
+.head-turn-right {
+    right: 10%;
+}
+
+.head-turn-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    color: white;
+    font-size: 24px;
+    z-index: 12;
+}
+
+.arrow-left {
+    left: 5%;
+}
+
+.arrow-right {
+    right: 5%;
+}

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/header :: head('Verification Complete')">
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h3 class="text-center">Verification Complete</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="step-indicator">
+                            <div class="step completed">
+                                <div class="step-circle">1</div>
+                                <div class="step-line"></div>
+                                <div class="step-title">Start</div>
+                            </div>
+                            <div class="step completed">
+                                <div class="step-circle">2</div>
+                                <div class="step-line"></div>
+                                <div class="step-title">ID Front</div>
+                            </div>
+                            <div class="step completed">
+                                <div class="step-circle">3</div>
+                                <div class="step-line"></div>
+                                <div class="step-title">ID Back</div>
+                            </div>
+                            <div class="step completed">
+                                <div class="step-circle">4</div>
+                                <div class="step-line"></div>
+                                <div class="step-title">Liveness</div>
+                            </div>
+                            <div class="step active">
+                                <div class="step-circle">5</div>
+                                <div class="step-title">Complete</div>
+                            </div>
+                        </div>
+                        
+                        <div th:if="${success}" class="mt-4 verification-complete">
+                            <div class="success-animation">
+                                <div class="success-checkmark">✓</div>
+                                <h4 class="text-success">Verification Successful!</h4>
+                            </div>
+                            
+                            <div class="alert alert-success">
+                                <p><strong>ID Number:</strong> <span th:text="${idNumber}"></span></p>
+                                <p><strong>Full Name:</strong> <span th:text="${fullName}"></span></p>
+                                <p><strong>Verification Status:</strong> <span th:text="${verificationStatus}"></span></p>
+                                <p><strong>Verification Date:</strong> <span th:text="${verificationDate}"></span></p>
+                            </div>
+                            
+                            <div class="row mt-4">
+                                <div class="col-md-6 mb-3">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <i class="bi bi-credit-card-front"></i> ID Front
+                                        </div>
+                                        <div class="card-body p-0">
+                                            <img th:if="${frontImageUrl}" th:src="${frontImageUrl}" class="img-fluid" alt="ID Front">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <i class="bi bi-credit-card-back"></i> ID Back
+                                        </div>
+                                        <div class="card-body p-0">
+                                            <img th:if="${backImageUrl}" th:src="${backImageUrl}" class="img-fluid" alt="ID Back">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Extracted ID Data Container -->
+                            <div class="extracted-data-container mt-4">
+                                <h5 class="mb-3">
+                                    <i class="bi bi-card-text"></i> Extracted ID Information
+                                </h5>
+                                <!-- ID data will be populated by id-capture.js -->
+                            </div>
+                        </div>
+                        
+                        <div th:if="${!success}" class="mt-4">
+                            <div class="error-animation">
+                                <div class="error-mark">✗</div>
+                                <h4 class="text-danger">Verification Failed</h4>
+                            </div>
+                            
+                            <div class="alert alert-danger">
+                                <p><strong>Reason:</strong> <span th:text="${errorMessage}"></span></p>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 mt-4">
+                            <a th:href="@{/}" class="btn btn-primary">
+                                <i class="bi bi-house"></i> Return to Home
+                            </a>
+                            <a th:if="${!success}" th:href="@{/verification/start}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-repeat"></i> Try Again
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div th:replace="fragments/header :: scripts"></div>
+</body>
+</html>

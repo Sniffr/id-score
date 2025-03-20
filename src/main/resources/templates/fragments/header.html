@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title} + ' - Kenyan ID Verification'">Kenyan ID Verification</title>
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap/5.3.2/css/bootstrap.min.css}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+    <link rel="stylesheet" th:href="@{/css/liveness-check.css}">
+</head>
+<body>
+    <div th:fragment="scripts">
+        <script th:src="@{/webjars/jquery/3.7.1/jquery.min.js}"></script>
+        <script th:src="@{/webjars/bootstrap/5.3.2/js/bootstrap.bundle.min.js}"></script>
+        <script th:src="@{/js/camera-utils.js}"></script>
+        <script th:src="@{/js/id-capture.js}"></script>
+        <script th:src="@{/js/main.js}"></script>
+        <script th:src="@{/js/liveness-check.js}"></script>
+    </div>
+</body>
+</html>

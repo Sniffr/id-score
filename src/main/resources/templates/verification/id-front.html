@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/header :: head('Capture ID Front')">
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h3 class="text-center">Capture ID Front</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="step-indicator">
+                            <div class="step completed">
+                                <div class="step-circle">1</div>
+                                <div class="step-line"></div>
+                                <div class="step-title">Start</div>
+                            </div>
+                            <div class="step active">
+                                <div class="step-circle">2</div>
+                                <div class="step-line"></div>
+                                <div class="step-title">ID Front</div>
+                            </div>
+                            <div class="step">
+                                <div class="step-circle">3</div>
+                                <div class="step-line"></div>
+                                <div class="step-title">ID Back</div>
+                            </div>
+                            <div class="step">
+                                <div class="step-circle">4</div>
+                                <div class="step-line"></div>
+                                <div class="step-title">Liveness</div>
+                            </div>
+                            <div class="step">
+                                <div class="step-circle">5</div>
+                                <div class="step-title">Complete</div>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info mb-4">
+                            <h5>Instructions:</h5>
+                            <p>Please capture a clear image of the <strong>front</strong> of your Kenyan National ID card.</p>
+                            <ul>
+                                <li>Ensure good lighting</li>
+                                <li>Hold the ID card steady</li>
+                                <li>Make sure all text is clearly visible</li>
+                                <li>Avoid glare or shadows</li>
+                            </ul>
+                        </div>
+                        
+                        <form th:action="@{/verification/id-back}" method="post" id="captureForm">
+                            <input type="hidden" name="idNumber" th:value="${idNumber}">
+                            <input type="hidden" name="fullName" th:value="${fullName}">
+                            <input type="hidden" id="capturedImageData" name="frontImageData">
+                            
+                            <div id="capture-container" class="mb-4">
+                                <div class="camera-container mb-3">
+                                    <video id="video" autoplay playsinline></video>
+                                    <canvas id="canvas" style="display: none;"></canvas>
+                                    <div class="id-card-guide"></div>
+                                </div>
+                                <div class="d-grid">
+                                    <button type="button" id="capture-btn" class="btn btn-primary btn-lg">
+                                        <i class="bi bi-camera"></i> Capture Front of ID
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div id="preview-container" class="d-none mb-4">
+                                <h5 class="mb-3">Preview:</h5>
+                                <div class="preview-container mb-3">
+                                    <img id="preview-image" class="preview-image" src="" alt="ID Front Preview">
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <button type="button" id="retake-btn" class="btn btn-secondary">
+                                        <i class="bi bi-arrow-counterclockwise"></i> Retake Photo
+                                    </button>
+                                    <button type="submit" id="confirm-btn" class="btn btn-success">
+                                        <i class="bi bi-check-lg"></i> Confirm & Continue
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div th:replace="fragments/header :: scripts"></div>
+</body>
+</html>
