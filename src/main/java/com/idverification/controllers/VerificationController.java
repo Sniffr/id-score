@@ -26,6 +26,15 @@ public class VerificationController {
         return "verification/start";
     }
     
+    @GetMapping("/id-front")
+    public String showIdFrontPage(Model model) {
+        // For direct access, we'll use placeholder values
+        model.addAttribute("idNumber", "SAMPLE123");
+        model.addAttribute("fullName", "Test User");
+        
+        return "verification/id-front";
+    }
+    
     @PostMapping("/id-front")
     public String captureIdFront(@RequestParam("idNumber") String idNumber,
                                 @RequestParam("fullName") String fullName,
