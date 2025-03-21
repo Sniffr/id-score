@@ -45,7 +45,8 @@ const IDDocumentDetection = (function() {
         const gray = new cv.Mat();
         const edges = new cv.Mat();
         cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-        cv.Canny(gray, edges, 50, 150, 3);
+        // Adjust Canny parameters for better detection of Kenyan ID edges
+        cv.Canny(gray, edges, 40, 120, 3);
         
         // Find contours
         const contours = new cv.MatVector();
@@ -69,7 +70,7 @@ const IDDocumentDetection = (function() {
         // Results to return
         let result = {
             isValid: false,
-            message: "Position ID card within the guide",
+            message: "Position Kenyan ID card within the guide",
             rect: null
         };
         
@@ -84,9 +85,9 @@ const IDDocumentDetection = (function() {
             const minArea = canvasElement.width * canvasElement.height * 0.1;
             const isLargeEnough = maxArea > minArea;
             
-            // Check if aspect ratio is reasonable for ID card
+            // Check if aspect ratio matches Kenyan ID card (more precise range)
             const aspectRatio = rect.width / rect.height;
-            const isValidRatio = aspectRatio > 1.3 && aspectRatio < 1.9;
+            const isValidRatio = aspectRatio > 1.5 && aspectRatio < 1.7; // Kenyan ID aspect ratio is approximately 1.6:1
             
             // Position validation
             const guideRect = guideElement.getBoundingClientRect();
@@ -121,8 +122,16 @@ const IDDocumentDetection = (function() {
             } else if (!isVerticallyAligned) {
                 result.message = "Align the ID card vertically";
             } else if (isLargeEnough && isValidRatio) {
-                result.isValid = true;
-                result.message = "Perfect! Hold still for capture";
+                // Additional check for Kenyan ID card color
+                const hasKenyanIdColor = checkKenyanIdColor(src, rect);
+                
+                if (hasKenyanIdColor) {
+                    result.isValid = true;
+                    result.message = "Perfect! Kenyan ID detected. Hold still for capture";
+                } else {
+                    result.isValid = false;
+                    result.message = "ID card detected. Please use a Kenyan National ID";
+                }
             }
             
             result.rect = rect;
@@ -172,10 +181,55 @@ const IDDocumentDetection = (function() {
         return stddevValue < blurThreshold;
     }
     
+    // Check if the detected card has colors typical of a Kenyan ID
+    function checkKenyanIdColor(src, rect) {
+        // Create a ROI (region of interest) from the detected rectangle
+        const roi = src.roi(rect);
+        
+        // Convert to HSV for better color detection
+        const hsv = new cv.Mat();
+        cv.cvtColor(roi, hsv, cv.COLOR_RGB2HSV);
+        
+        // Define color range for typical Kenyan ID beige/tan color
+        // H: 10-30 (orange/brown hue range)
+        // S: 20-50% (mild saturation)
+        // V: 70-90% (good brightness)
+        const lower = new cv.Mat(1, 3, cv.CV_8UC1);
+        const upper = new cv.Mat(1, 3, cv.CV_8UC1);
+        
+        lower.data[0] = 10;  // H lower
+        lower.data[1] = 20;  // S lower
+        lower.data[2] = 180; // V lower (scale 0-255)
+        
+        upper.data[0] = 30;  // H upper
+        upper.data[1] = 120; // S upper
+        upper.data[2] = 240; // V upper
+        
+        // Create mask of pixels in the color range
+        const mask = new cv.Mat();
+        cv.inRange(hsv, lower, upper, mask);
+        
+        // Count pixels in the color range
+        const pixelsInRange = cv.countNonZero(mask);
+        const totalPixels = rect.width * rect.height;
+        const colorRatio = pixelsInRange / totalPixels;
+        
+        // Clean up
+        roi.delete();
+        hsv.delete();
+        mask.delete();
+        lower.delete();
+        upper.delete();
+        
+        // Return true if enough pixels are in the Kenyan ID color range
+        return colorRatio > 0.3; // At least 30% should match the color
+    }
+    
     // Return public methods
     return {
         initialize,
         processFrame,
-        detectBlur
+        detectBlur,
+        checkKenyanIdColor
     };
 })();
