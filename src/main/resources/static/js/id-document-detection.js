@@ -1,0 +1,181 @@
+/**
+ * ID Document Detection Module
+ * Provides functionality for detecting ID documents in camera frames
+ * using OpenCV.js for image processing
+ */
+const IDDocumentDetection = (function() {
+    // Module variables
+    let isOpenCVLoaded = false;
+    let net = null;
+    
+    // Initialize function
+    async function initialize() {
+        // Wait for OpenCV to load
+        if (typeof cv === 'undefined') {
+            return new Promise((resolve) => {
+                // OpenCV.js callback when ready
+                window.onOpenCVReady = () => {
+                    isOpenCVLoaded = true;
+                    console.log("OpenCV.js loaded");
+                    resolve(true);
+                };
+            });
+        } else {
+            isOpenCVLoaded = true;
+            console.log("OpenCV.js already loaded");
+            return Promise.resolve(true);
+        }
+    }
+    
+    // Process frame for document detection
+    function processFrame(videoElement, canvasElement, guideElement) {
+        if (!isOpenCVLoaded) return null;
+        
+        const ctx = canvasElement.getContext('2d');
+        
+        // Draw the current frame
+        canvasElement.width = videoElement.videoWidth;
+        canvasElement.height = videoElement.videoHeight;
+        ctx.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
+        
+        // Convert to OpenCV format
+        const src = cv.imread(canvasElement);
+        
+        // Detect document edges using Canny
+        const gray = new cv.Mat();
+        const edges = new cv.Mat();
+        cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+        cv.Canny(gray, edges, 50, 150, 3);
+        
+        // Find contours
+        const contours = new cv.MatVector();
+        const hierarchy = new cv.Mat();
+        cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+        
+        // Check for document-like contours
+        let maxArea = 0;
+        let maxContourIndex = -1;
+        
+        for (let i = 0; i < contours.size(); ++i) {
+            const contour = contours.get(i);
+            const area = cv.contourArea(contour);
+            
+            if (area > maxArea) {
+                maxArea = area;
+                maxContourIndex = i;
+            }
+        }
+        
+        // Results to return
+        let result = {
+            isValid: false,
+            message: "Position ID card within the guide",
+            rect: null
+        };
+        
+        // If found a reasonable contour, check if it's document shaped
+        if (maxContourIndex >= 0) {
+            const maxContour = contours.get(maxContourIndex);
+            
+            // Get bounding rectangle
+            const rect = cv.boundingRect(maxContour);
+            
+            // Check if size is reasonable (not too small)
+            const minArea = canvasElement.width * canvasElement.height * 0.1;
+            const isLargeEnough = maxArea > minArea;
+            
+            // Check if aspect ratio is reasonable for ID card
+            const aspectRatio = rect.width / rect.height;
+            const isValidRatio = aspectRatio > 1.3 && aspectRatio < 1.9;
+            
+            // Position validation
+            const guideRect = guideElement.getBoundingClientRect();
+            const canvasRect = canvasElement.getBoundingClientRect();
+            
+            // Convert guide rectangle to canvas coordinates
+            const guideCanvasX = (guideRect.left - canvasRect.left) * (canvasElement.width / canvasRect.width);
+            const guideCanvasY = (guideRect.top - canvasRect.top) * (canvasElement.height / canvasRect.height);
+            const guideCanvasWidth = guideRect.width * (canvasElement.width / canvasRect.width);
+            const guideCanvasHeight = guideRect.height * (canvasElement.height / canvasRect.height);
+            
+            // Check position relative to guide
+            const isCentered = Math.abs((rect.x + rect.width/2) - (guideCanvasX + guideCanvasWidth/2)) < guideCanvasWidth * 0.2;
+            const isVerticallyAligned = Math.abs((rect.y + rect.height/2) - (guideCanvasY + guideCanvasHeight/2)) < guideCanvasHeight * 0.2;
+            
+            // Check size relative to guide
+            const isTooSmall = rect.width < guideCanvasWidth * 0.7;
+            const isTooLarge = rect.width > guideCanvasWidth * 1.2;
+            
+            // Draw rectangle on canvas
+            ctx.strokeStyle = 'rgba(0, 255, 0, 0.8)';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
+            
+            // Set message and validity based on checks
+            if (isTooSmall) {
+                result.message = "Move closer to the camera";
+            } else if (isTooLarge) {
+                result.message = "Move farther from the camera";
+            } else if (!isCentered) {
+                result.message = "Center the ID card";
+            } else if (!isVerticallyAligned) {
+                result.message = "Align the ID card vertically";
+            } else if (isLargeEnough && isValidRatio) {
+                result.isValid = true;
+                result.message = "Perfect! Hold still for capture";
+            }
+            
+            result.rect = rect;
+        }
+        
+        // Clean up
+        src.delete();
+        gray.delete();
+        edges.delete();
+        contours.delete();
+        hierarchy.delete();
+        
+        return result;
+    }
+    
+    // Check if image is blurry
+    function detectBlur(imageData) {
+        if (!isOpenCVLoaded) return false;
+        
+        const src = cv.matFromImageData(imageData);
+        const gray = new cv.Mat();
+        
+        // Convert to grayscale
+        cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+        
+        // Calculate Laplacian variance (measure of focus)
+        const laplacian = new cv.Mat();
+        cv.Laplacian(gray, laplacian, cv.CV_64F);
+        
+        // Calculate variance
+        const mean = new cv.Mat();
+        const stddev = new cv.Mat();
+        cv.meanStdDev(laplacian, mean, stddev);
+        
+        // Get standard deviation value
+        const stddevValue = stddev.doubleAt(0, 0);
+        
+        // Clean up
+        src.delete();
+        gray.delete();
+        laplacian.delete();
+        mean.delete();
+        stddev.delete();
+        
+        // Lower values indicate more blur, threshold can be adjusted
+        const blurThreshold = 15.0;
+        return stddevValue < blurThreshold;
+    }
+    
+    // Return public methods
+    return {
+        initialize,
+        processFrame,
+        detectBlur
+    };
+})();

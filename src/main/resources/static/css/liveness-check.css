@@ -51,23 +51,31 @@
     transform: translate(-50%, -50%);
     width: 60%;
     height: 70%;
-    border: 2px dashed #fff;
+    border: 3px dashed rgba(255, 255, 255, 0.7);
     border-radius: 50%;
-    box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.3);
     z-index: 10;
+    transition: all 0.3s ease;
     pointer-events: none;
 }
 
-.face-guide::after {
-    content: 'Position your face within the oval';
+.face-guide.valid-position {
+    border: 3px solid #28a745;
+    box-shadow: 0 0 15px rgba(40, 167, 69, 0.5);
+}
+
+.guide-message {
     position: absolute;
-    bottom: -30px;
+    bottom: -40px;
     left: 0;
-    width: 100%;
+    right: 0;
     text-align: center;
-    color: #fff;
-    text-shadow: 0 0 5px rgba(0, 0, 0, 0.7);
-    font-size: 14px;
+    color: white;
+    font-size: 16px;
+    font-weight: 500;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    background: rgba(0, 0, 0, 0.5);
+    padding: 5px 10px;
+    border-radius: 4px;
 }
 
 /* Liveness animation effects */
@@ -81,6 +89,44 @@
     100% { opacity: 1; }
 }
 
+/* Instruction overlay */
+.instruction-overlay {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+    z-index: 20;
+}
+
+.instruction-text {
+    font-size: 18px;
+    font-weight: 500;
+    margin-bottom: 10px;
+}
+
+.instruction-progress {
+    width: 100%;
+}
+
+.instruction-progress .progress {
+    height: 8px;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.instruction-progress .progress-bar {
+    background-color: #28a745;
+    transition: width 0.3s ease;
+}
+
+/* Head turn guides */
 .head-turn-guide {
     position: absolute;
     top: 50%;

@@ -49,44 +49,235 @@
                             </ul>
                         </div>
                         
-                        <form th:action="@{/verification/id-back}" method="post" id="captureForm">
-                            <input type="hidden" name="idNumber" th:value="${idNumber}">
-                            <input type="hidden" name="fullName" th:value="${fullName}">
-                            <input type="hidden" id="capturedImageData" name="frontImageData">
-                            
-                            <div id="capture-container" class="mb-4">
-                                <div class="camera-container mb-3">
-                                    <video id="video" autoplay playsinline></video>
-                                    <canvas id="canvas" style="display: none;"></canvas>
-                                    <div class="id-card-guide"></div>
+                        <div id="id-capture-app">
+                            <form th:action="@{/verification/id-back}" method="post" id="captureForm">
+                                <input type="hidden" name="idNumber" th:value="${idNumber}">
+                                <input type="hidden" name="fullName" th:value="${fullName}">
+                                <input type="hidden" id="capturedImageData" name="frontImageData" v-model="formImageData">
+                                
+                                <div v-if="!capturedImage" class="mb-4">
+                                    <div class="camera-container position-relative mb-3">
+                                        <video ref="video" :class="{ 'camera-active': isCameraActive }" autoplay playsinline></video>
+                                        <canvas ref="canvas" style="display: none;"></canvas>
+                                        
+                                        <div class="id-card-guide" :class="{ 'valid-position': isValidPosition }">
+                                            <div class="guide-message">{{ positionMessage }}</div>
+                                        </div>
+                                        
+                                        <button 
+                                            @click="switchCamera" 
+                                            class="switch-camera-btn btn btn-sm btn-light">
+                                            <i class="bi bi-arrow-repeat"></i> Switch Camera
+                                        </button>
+                                        
+                                        <button 
+                                            @click="toggleAutoCapture" 
+                                            class="autocapture-toggle-btn" 
+                                            :class="{ 'active': autoCaptureEnabled }">
+                                            <i class="bi bi-magic"></i> Auto-Capture: {{ autoCaptureEnabled ? 'ON' : 'OFF' }}
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="d-grid">
+                                        <button 
+                                            @click="captureImage" 
+                                            :disabled="!isValidPosition" 
+                                            class="btn btn-primary btn-lg capture-btn">
+                                            <i class="bi bi-camera"></i> {{ captureButtonText }}
+                                        </button>
+                                    </div>
                                 </div>
-                                <div class="d-grid">
-                                    <button type="button" id="capture-btn" class="btn btn-primary btn-lg">
-                                        <i class="bi bi-camera"></i> Capture Front of ID
-                                    </button>
+                                
+                                <div v-else class="mb-4">
+                                    <h5 class="mb-3">Preview:</h5>
+                                    <div class="preview-container mb-3">
+                                        <img :src="capturedImage" class="preview-image img-fluid" alt="ID Front Preview">
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <button type="button" @click="retakeImage" class="btn btn-secondary">
+                                            <i class="bi bi-arrow-counterclockwise"></i> Retake Photo
+                                        </button>
+                                        <button type="submit" class="btn btn-success">
+                                            <i class="bi bi-check-lg"></i> Confirm & Continue
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                            
-                            <div id="preview-container" class="d-none mb-4">
-                                <h5 class="mb-3">Preview:</h5>
-                                <div class="preview-container mb-3">
-                                    <img id="preview-image" class="preview-image" src="" alt="ID Front Preview">
-                                </div>
-                                <div class="d-flex justify-content-between">
-                                    <button type="button" id="retake-btn" class="btn btn-secondary">
-                                        <i class="bi bi-arrow-counterclockwise"></i> Retake Photo
-                                    </button>
-                                    <button type="submit" id="confirm-btn" class="btn btn-success">
-                                        <i class="bi bi-check-lg"></i> Confirm & Continue
-                                    </button>
-                                </div>
-                            </div>
-                        </form>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <script th:inline="javascript">
+        new Vue({
+            el: '#id-capture-app',
+            data: {
+                isCameraActive: false,
+                isValidPosition: false,
+                positionMessage: 'Position ID card within the guide',
+                captureButtonText: 'Capture Front of ID',
+                capturedImage: null,
+                formImageData: '',
+                stream: null,
+                currentFacingMode: 'environment', // Start with rear camera
+                validationTimer: null,
+                processingFrame: false,
+                autoCaptureEnabled: true,
+                validPositionCounter: 0,
+                isCapturing: false,
+                idNumber: /*[[${idNumber}]]*/ ''
+            },
+            mounted() {
+                this.initOpenCV();
+            },
+            methods: {
+                async initOpenCV() {
+                    // Initialize OpenCV.js
+                    await IDDocumentDetection.initialize();
+                    this.initCamera();
+                },
+                
+                initCamera() {
+                    const constraints = {
+                        video: {
+                            facingMode: this.currentFacingMode,
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 }
+                        }
+                    };
+                    
+                    navigator.mediaDevices.getUserMedia(constraints)
+                        .then(stream => {
+                            this.stream = stream;
+                            this.$refs.video.srcObject = stream;
+                            this.isCameraActive = true;
+                            this.startPositionValidation();
+                        })
+                        .catch(err => {
+                            console.error('Camera error:', err);
+                            alert('Error accessing camera: ' + err.message);
+                        });
+                },
+                
+                startPositionValidation() {
+                    this.validationTimer = setInterval(() => {
+                        if (this.processingFrame) return;
+                        this.processingFrame = true;
+                        
+                        const video = this.$refs.video;
+                        const canvas = this.$refs.canvas;
+                        const guide = document.querySelector('.id-card-guide');
+                        
+                        if (video.readyState === 4) {
+                            // Process frame with OpenCV.js
+                            const result = IDDocumentDetection.processFrame(video, canvas, guide);
+                            
+                            if (result) {
+                                this.isValidPosition = result.isValid;
+                                this.positionMessage = result.message;
+                                
+                                // If position is valid and auto-capture is enabled, increment counter
+                                if (this.isValidPosition && this.autoCaptureEnabled && !this.isCapturing) {
+                                    this.validPositionCounter++;
+                                    
+                                    // After 2 seconds of stable position, auto-capture
+                                    if (this.validPositionCounter >= 4) { // 500ms interval * 4 = 2 seconds
+                                        this.isCapturing = true;
+                                        this.captureButtonText = 'Capturing...';
+                                        
+                                        // Trigger capture after a short delay
+                                        setTimeout(() => {
+                                            if (this.isValidPosition) {
+                                                this.captureImage();
+                                            } else {
+                                                // Reset if position is lost during delay
+                                                this.isCapturing = false;
+                                                this.captureButtonText = 'Capture Front of ID';
+                                            }
+                                        }, 500);
+                                    }
+                                } else {
+                                    // Reset counter if position is lost
+                                    this.validPositionCounter = 0;
+                                }
+                            }
+                            
+                            this.processingFrame = false;
+                        } else {
+                            this.processingFrame = false;
+                        }
+                    }, 100); // More frequent updates for responsive guidance
+                },
+                
+                captureImage() {
+                    const canvas = this.$refs.canvas;
+                    const video = this.$refs.video;
+                    const context = canvas.getContext('2d');
+                    
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    
+                    // Check for blur
+                    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                    const isBlurry = IDDocumentDetection.detectBlur(imageData);
+                    
+                    if (isBlurry) {
+                        alert("Image is blurry. Please hold steady and try again.");
+                        this.isCapturing = false;
+                        this.captureButtonText = 'Capture Front of ID';
+                        return;
+                    }
+                    
+                    this.capturedImage = canvas.toDataURL('image/jpeg');
+                    this.formImageData = this.capturedImage;
+                    document.getElementById('capturedImageData').value = this.capturedImage;
+                    
+                    if (this.validationTimer) {
+                        clearInterval(this.validationTimer);
+                    }
+                    
+                    if (this.stream) {
+                        this.stream.getTracks().forEach(track => track.stop());
+                    }
+                },
+                
+                retakeImage() {
+                    this.capturedImage = null;
+                    this.formImageData = '';
+                    this.validPositionCounter = 0;
+                    this.isCapturing = false;
+                    this.captureButtonText = 'Capture Front of ID';
+                    this.initCamera();
+                },
+                
+                switchCamera() {
+                    if (this.stream) {
+                        this.stream.getTracks().forEach(track => track.stop());
+                    }
+                    
+                    this.currentFacingMode = this.currentFacingMode === 'environment' ? 'user' : 'environment';
+                    this.initCamera();
+                },
+                
+                toggleAutoCapture() {
+                    this.autoCaptureEnabled = !this.autoCaptureEnabled;
+                    this.validPositionCounter = 0;
+                }
+            },
+            beforeDestroy() {
+                if (this.validationTimer) {
+                    clearInterval(this.validationTimer);
+                }
+                
+                if (this.stream) {
+                    this.stream.getTracks().forEach(track => track.stop());
+                }
+            }
+        });
+    </script>
 
     <div th:replace="fragments/header :: scripts"></div>
 </body>
