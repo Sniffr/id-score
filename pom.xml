@@ -76,6 +76,12 @@
 			<artifactId>webjars-locator</artifactId>
 			<version>0.47</version>
 		</dependency>
+		<!-- AWS Rekognition -->
+		<dependency>
+			<groupId>com.amazonaws</groupId>
+			<artifactId>aws-java-sdk-rekognition</artifactId>
+			<version>1.12.529</version>
+		</dependency>
 	</dependencies>
 
 	<build>

@@ -1,14 +1,20 @@
 package com.idverification.services;
 
+import com.amazonaws.services.rekognition.model.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
 import java.util.Base64;
+import java.util.List;
 
 @Service
 public class ImageProcessingService {
     
+    @Autowired
+    private RekognitionService rekognitionService;
+    
     /**
-     * Processes an ID card image to extract information.
-     * In a real application, this would use OCR to extract text from the ID card.
+     * Processes an ID card image to extract information using AWS Rekognition.
      * 
      * @param imageData Base64 encoded image data
      * @return true if processing was successful, false otherwise
@@ -19,18 +25,14 @@ public class ImageProcessingService {
         }
         
         try {
-            // Extract the base64 image data
-            String base64Image = imageData.split(",")[1];
-            byte[] imageBytes = Base64.getDecoder().decode(base64Image);
+            // Convert base64 to byte array
+            byte[] imageBytes = rekognitionService.base64ToByteArray(imageData);
             
-            // In a real application, this would use OpenCV and OCR libraries
-            // to extract text from the ID card and validate it
-            // For this demo, we'll simulate successful processing
+            // Detect text from the ID card
+            DetectTextResult textResult = rekognitionService.detectText(imageBytes);
             
-            // Simulate processing time
-            Thread.sleep(1000);
-            
-            return true;
+            // Check if we detected any text (ID card should have text)
+            return !textResult.getTextDetections().isEmpty();
         } catch (Exception e) {
             e.printStackTrace();
             return false;
@@ -38,8 +40,7 @@ public class ImageProcessingService {
     }
     
     /**
-     * Validates that the ID card is genuine.
-     * In a real application, this would check for security features.
+     * Validates that the ID card is genuine using AWS Rekognition.
      * 
      * @param frontImageData Base64 encoded front image data
      * @param backImageData Base64 encoded back image data
@@ -52,21 +53,19 @@ public class ImageProcessingService {
         }
         
         try {
-            // Extract the base64 image data
-            String base64FrontImage = frontImageData.split(",")[1];
-            String base64BackImage = backImageData.split(",")[1];
+            // Convert base64 to byte arrays
+            byte[] frontImageBytes = rekognitionService.base64ToByteArray(frontImageData);
+            byte[] backImageBytes = rekognitionService.base64ToByteArray(backImageData);
             
-            byte[] frontImageBytes = Base64.getDecoder().decode(base64FrontImage);
-            byte[] backImageBytes = Base64.getDecoder().decode(base64BackImage);
+            // Detect text from both images
+            DetectTextResult frontTextResult = rekognitionService.detectText(frontImageBytes);
+            DetectTextResult backTextResult = rekognitionService.detectText(backImageBytes);
             
-            // In a real application, this would check for security features
-            // such as holograms, microprinting, etc.
-            // For this demo, we'll simulate successful validation
+            // Check if we detected any text on both sides
+            boolean hasFrontText = !frontTextResult.getTextDetections().isEmpty();
+            boolean hasBackText = !backTextResult.getTextDetections().isEmpty();
             
-            // Simulate processing time
-            Thread.sleep(1000);
-            
-            return true;
+            return hasFrontText && hasBackText;
         } catch (Exception e) {
             e.printStackTrace();
             return false;
@@ -74,8 +73,7 @@ public class ImageProcessingService {
     }
     
     /**
-     * Extracts text from an ID card image.
-     * In a real application, this would use OCR.
+     * Extracts text from an ID card image using AWS Rekognition.
      * 
      * @param imageData Base64 encoded image data
      * @return extracted text or null if extraction failed
@@ -86,18 +84,21 @@ public class ImageProcessingService {
         }
         
         try {
-            // Extract the base64 image data
-            String base64Image = imageData.split(",")[1];
-            byte[] imageBytes = Base64.getDecoder().decode(base64Image);
+            // Convert base64 to byte array
+            byte[] imageBytes = rekognitionService.base64ToByteArray(imageData);
             
-            // In a real application, this would use OCR libraries
-            // to extract text from the image
-            // For this demo, we'll return a simulated result
+            // Detect text from the image
+            DetectTextResult textResult = rekognitionService.detectText(imageBytes);
             
-            // Simulate processing time
-            Thread.sleep(1000);
+            // Build a string with all detected text
+            StringBuilder extractedText = new StringBuilder();
+            for (TextDetection text : textResult.getTextDetections()) {
+                if (text.getType().equals("LINE")) {
+                    extractedText.append(text.getDetectedText()).append("\n");
+                }
+            }
             
-            return "REPUBLIC OF KENYA\nNATIONAL ID CARD\nSIMULATED OCR TEXT";
+            return extractedText.toString();
         } catch (Exception e) {
             e.printStackTrace();
             return null;

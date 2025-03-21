@@ -1,15 +1,19 @@
 package com.idverification.services;
 
+import com.amazonaws.services.rekognition.model.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import java.util.Base64;
+
+import java.util.List;
 
 @Service
 public class LivenessCheckService {
     
+    @Autowired
+    private RekognitionService rekognitionService;
+    
     /**
-     * Performs a liveness check on the provided image.
-     * In a real application, this would use computer vision and ML models
-     * to detect blinks, head movements, and other liveness indicators.
+     * Performs a liveness check on the provided image using AWS Rekognition.
      * 
      * @param livenessImageData Base64 encoded image data
      * @return true if liveness check passes, false otherwise
@@ -20,21 +24,22 @@ public class LivenessCheckService {
         }
         
         try {
-            // Extract the base64 image data (remove data:image/png;base64, prefix)
-            String base64Image = livenessImageData.split(",")[1];
-            byte[] imageBytes = Base64.getDecoder().decode(base64Image);
+            // Convert base64 to byte array
+            byte[] imageBytes = rekognitionService.base64ToByteArray(livenessImageData);
             
-            // In a real application, this would use OpenCV or a similar library
-            // to detect facial features, blinks, and head movements
-            // For this demo, we'll simulate a successful liveness check
+            // Detect faces for liveness check
+            DetectFacesResult facesResult = rekognitionService.detectFaces(imageBytes);
             
-            // Simulate processing time
-            Thread.sleep(1000);
+            if (facesResult.getFaceDetails().isEmpty()) {
+                return false;
+            }
             
-            // Log the liveness check
-            System.out.println("Liveness check performed successfully");
+            // Get the first face details
+            FaceDetail face = facesResult.getFaceDetails().get(0);
             
-            return true;
+            // Check for real face attributes (not a photo)
+            // In a real application, you would check for eye blinks, head movements, etc.
+            return face.getConfidence() > 90;
         } catch (Exception e) {
             e.printStackTrace();
             return false;
@@ -42,8 +47,8 @@ public class LivenessCheckService {
     }
     
     /**
-     * Checks if the face in the liveness image matches the face on the ID card.
-     * In a real application, this would use facial recognition.
+     * Checks if the face in the liveness image matches the face on the ID card
+     * using AWS Rekognition.
      * 
      * @param idImageData Base64 encoded ID image data
      * @param livenessImageData Base64 encoded liveness image data
@@ -56,21 +61,20 @@ public class LivenessCheckService {
         }
         
         try {
-            // Extract the base64 image data
-            String base64IdImage = idImageData.split(",")[1];
-            String base64LivenessImage = livenessImageData.split(",")[1];
+            // Convert base64 to byte arrays
+            byte[] idImageBytes = rekognitionService.base64ToByteArray(idImageData);
+            byte[] livenessImageBytes = rekognitionService.base64ToByteArray(livenessImageData);
             
-            byte[] idImageBytes = Base64.getDecoder().decode(base64IdImage);
-            byte[] livenessImageBytes = Base64.getDecoder().decode(base64LivenessImage);
+            // Compare faces between ID and liveness image
+            CompareFacesResult compareResult = rekognitionService.compareFaces(
+                idImageBytes, livenessImageBytes);
             
-            // In a real application, this would use facial recognition
-            // to compare the faces and return a confidence score
-            // For this demo, we'll simulate a successful match
+            if (compareResult.getFaceMatches().isEmpty()) {
+                return false;
+            }
             
-            // Simulate processing time
-            Thread.sleep(1000);
-            
-            return true;
+            // Check if similarity is above threshold (90%)
+            return compareResult.getFaceMatches().get(0).getSimilarity() >= 90;
         } catch (Exception e) {
             e.printStackTrace();
             return false;
