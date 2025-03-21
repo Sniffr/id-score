@@ -8,7 +8,7 @@ const cameraConstraints = {
     video: {
         width: { ideal: 1280 },
         height: { ideal: 720 },
-        facingMode: "user"
+        facingMode: "environment"  // Default to rear camera for ID capture
     }
 };
 

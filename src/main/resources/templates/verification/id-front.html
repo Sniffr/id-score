@@ -148,16 +148,102 @@
                         }
                     };
                     
+                    // First check if we have permission
+                    if (navigator.permissions && navigator.permissions.query) {
+                        navigator.permissions.query({ name: 'camera' })
+                            .then(permissionStatus => {
+                                this.handleCameraPermission(permissionStatus, constraints);
+                                
+                                // Listen for permission changes
+                                permissionStatus.onchange = () => {
+                                    this.handleCameraPermission(permissionStatus, constraints);
+                                };
+                            })
+                            .catch(err => {
+                                // Fallback to direct getUserMedia if permissions API not supported
+                                this.requestCameraAccess(constraints);
+                            });
+                    } else {
+                        // Fallback for browsers that don't support permissions API
+                        this.requestCameraAccess(constraints);
+                    }
+                },
+                
+                handleCameraPermission(permissionStatus, constraints) {
+                    if (permissionStatus.state === 'granted') {
+                        this.requestCameraAccess(constraints);
+                    } else if (permissionStatus.state === 'prompt') {
+                        // Show permission guidance UI before requesting
+                        this.showPermissionGuidance();
+                        this.requestCameraAccess(constraints);
+                    } else if (permissionStatus.state === 'denied') {
+                        this.showPermissionDeniedMessage();
+                    }
+                },
+                
+                showPermissionGuidance() {
+                    // Add guidance message to the camera container
+                    const cameraContainer = document.querySelector('.camera-container');
+                    if (cameraContainer) {
+                        const guidanceElement = document.createElement('div');
+                        guidanceElement.className = 'permission-guidance';
+                        guidanceElement.innerHTML = `
+                            <div class="permission-message">
+                                <i class="bi bi-camera-video"></i>
+                                <h5>Camera Permission Required</h5>
+                                <p>This app needs camera access to capture your ID card. Please allow when prompted.</p>
+                            </div>
+                        `;
+                        cameraContainer.appendChild(guidanceElement);
+                    }
+                },
+                
+                showPermissionDeniedMessage() {
+                    const cameraContainer = document.querySelector('.camera-container');
+                    if (cameraContainer) {
+                        // Clear container
+                        while (cameraContainer.firstChild) {
+                            cameraContainer.removeChild(cameraContainer.firstChild);
+                        }
+                        
+                        // Add denied message
+                        const deniedElement = document.createElement('div');
+                        deniedElement.className = 'permission-denied';
+                        deniedElement.innerHTML = `
+                            <div class="permission-message">
+                                <i class="bi bi-camera-video-off"></i>
+                                <h5>Camera Access Denied</h5>
+                                <p>Camera access is required to continue. Please enable camera access in your browser settings and refresh this page.</p>
+                                <button class="btn btn-primary mt-3" onclick="location.reload()">Refresh Page</button>
+                            </div>
+                        `;
+                        cameraContainer.appendChild(deniedElement);
+                    }
+                    
+                    this.isCameraActive = false;
+                },
+                
+                requestCameraAccess(constraints) {
                     navigator.mediaDevices.getUserMedia(constraints)
                         .then(stream => {
                             this.stream = stream;
                             this.$refs.video.srcObject = stream;
                             this.isCameraActive = true;
                             this.startPositionValidation();
+                            
+                            // Remove any permission guidance if present
+                            const guidanceElement = document.querySelector('.permission-guidance');
+                            if (guidanceElement && guidanceElement.parentNode) {
+                                guidanceElement.parentNode.removeChild(guidanceElement);
+                            }
                         })
                         .catch(err => {
                             console.error('Camera error:', err);
-                            alert('Error accessing camera: ' + err.message);
+                            if (err.name === 'NotAllowedError') {
+                                this.showPermissionDeniedMessage();
+                            } else {
+                                alert('Error accessing camera: ' + err.message);
+                            }
                         });
                 },
                 
@@ -258,7 +344,10 @@
                         this.stream.getTracks().forEach(track => track.stop());
                     }
                     
+                    // Toggle facing mode
                     this.currentFacingMode = this.currentFacingMode === 'environment' ? 'user' : 'environment';
+                    
+                    // Reinitialize camera with new facing mode
                     this.initCamera();
                 },
                 

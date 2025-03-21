@@ -238,6 +238,52 @@ body {
     color: white;
 }
 
+/* Camera permission styles */
+.permission-guidance, .permission-denied {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 30;
+    border-radius: 8px;
+}
+
+.permission-message {
+    text-align: center;
+    color: white;
+    max-width: 80%;
+    padding: 20px;
+}
+
+.permission-message i {
+    font-size: 3rem;
+    margin-bottom: 15px;
+    display: block;
+}
+
+.permission-message h5 {
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+}
+
+.permission-message p {
+    font-size: 1rem;
+    margin-bottom: 15px;
+}
+
+.permission-denied .permission-message i {
+    color: #dc3545;
+}
+
+.permission-guidance .permission-message i {
+    color: #17a2b8;
+}
+
 .verification-step {
     padding: 20px;
     margin-bottom: 20px;
