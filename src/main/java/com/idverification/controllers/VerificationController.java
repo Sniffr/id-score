@@ -49,6 +49,16 @@ public class VerificationController {
         return "verification/id-front";
     }
     
+    @GetMapping("/id-back")
+    public String showIdBackPage(Model model) {
+        // For direct access, we'll use placeholder values
+        model.addAttribute("idNumber", "SAMPLE123");
+        model.addAttribute("fullName", "Test User");
+        model.addAttribute("frontImageData", ""); // Empty string for front image data
+        
+        return "verification/id-back";
+    }
+    
     @PostMapping("/id-back")
     public String captureIdBack(@RequestParam("idNumber") String idNumber,
                               @RequestParam("fullName") String fullName,
@@ -64,6 +74,15 @@ public class VerificationController {
         model.addAttribute("fullName", fullName);
         
         return "verification/id-back";
+    }
+    
+    @GetMapping("/liveness")
+    public String showLivenessPage(Model model) {
+        // For direct access, we'll use placeholder values
+        model.addAttribute("idNumber", "SAMPLE123");
+        model.addAttribute("fullName", "Test User");
+        
+        return "verification/liveness";
     }
     
     @PostMapping("/liveness")
@@ -82,6 +101,19 @@ public class VerificationController {
         model.addAttribute("fullName", fullName);
         
         return "verification/liveness";
+    }
+    
+    @GetMapping("/complete")
+    public String showCompletePage(Model model) {
+        // For direct access, we'll show a sample verification result
+        model.addAttribute("success", true);
+        model.addAttribute("idNumber", "SAMPLE123");
+        model.addAttribute("fullName", "Test User");
+        model.addAttribute("verificationStatus", "VERIFIED");
+        model.addAttribute("verificationDate", 
+                java.time.LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        
+        return "verification/complete";
     }
     
     @PostMapping("/complete")
